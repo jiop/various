@@ -1,0 +1,15 @@
+
+beacon/debug
+beacon/vendor
+
+concurrency/debug
+
+dependencymanagertest/vendor
+
+fanin/debug
+
+gotoolingworkshop/test/main
+
+gotoolingworkshop/test2/debug
+
+whynot/server/debug
