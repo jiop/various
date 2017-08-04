@@ -22,7 +22,7 @@ import (
 	"log"
 	"net"
 
-	pb "github.com/jiop/grpctests/helloworld"
+	pb "github.com/jiop/various/greeter/helloworld"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
