@@ -6,17 +6,12 @@ import (
 	"net"
 	"time"
 
-	ad "github.com/jiop/various/grpc_agents/advertise"
-	"github.com/jiop/various/grpc_agents/status"
+	co "github.com/jiop/various/grpc_agents/connection"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
 
 const port = 49000
-
-type agent struct {
-	port int
-}
 
 type boardServer struct {
 	agents []string
@@ -33,16 +28,40 @@ func (s *boardServer) start() {
 	}
 	var opts []grpc.ServerOption
 	grpcServer := grpc.NewServer(opts...)
-	ad.RegisterAdvertiseServer(grpcServer, s)
+	co.RegisterPingServer(grpcServer, s)
 
 	log.Println("board server listening on port", port)
 	grpcServer.Serve(lis)
 }
 
-func (s *boardServer) Send(ctx context.Context, message *ad.AdvertiseMessage) (*ad.AdvertiseAck, error) {
+func (s *boardServer) Send(ctx context.Context, message *co.PingMessage) (*co.None, error) {
 	log.Println("new agent listening on", message.Port)
 	s.agents = append(s.agents, message.Port)
-	return &ad.AdvertiseAck{Ok: true}, nil
+	return &co.None{}, nil
+}
+
+func (s *boardServer) logAgents(t time.Duration) {
+	for {
+		select {
+		case <-time.After(t):
+			log.Printf("%v", s.agents)
+		}
+	}
+}
+
+func (s *boardServer) gcAgents(t time.Duration, checker func(string) bool) {
+	for {
+		select {
+		case <-time.After(t):
+			var newAgents []string
+			for _, a := range s.agents {
+				if checker(a) {
+					newAgents = append(newAgents, a)
+				}
+			}
+			s.agents = newAgents
+		}
+	}
 }
 
 func checkAgentStatus(port string) bool {
@@ -52,40 +71,16 @@ func checkAgentStatus(port string) bool {
 	}
 	defer conn.Close()
 
-	client := status.NewStatusClient(conn)
-	st, err := client.Get(context.Background(), &status.None{})
-	if err != nil || st.Value != "up" {
-		return false
-	}
-	return true
-
+	client := co.NewStatusClient(conn)
+	st, err := client.Get(context.Background(), &co.None{})
+	return err == nil && st.Value == "up"
 }
 
 func main() {
 	me := newBoardServer()
-	go func() {
-		for {
-			select {
-			case <-time.After(2 * time.Second):
-				log.Printf("%v", me.agents)
-			}
-		}
-	}()
 
-	go func() {
-		for {
-			select {
-			case <-time.After(1 * time.Second):
-				var newAgents []string
-				for _, a := range me.agents {
-					if checkAgentStatus(a) {
-						newAgents = append(newAgents, a)
-					}
-				}
-				me.agents = newAgents
-			}
-		}
-	}()
+	go me.logAgents(1 * time.Second)
+	go me.gcAgents(1*time.Second, checkAgentStatus)
 
 	me.start()
 }

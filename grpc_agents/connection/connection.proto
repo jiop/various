@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package status;
+package connection;
 
 message StatusMessage {
   string value = 1;
@@ -10,5 +10,13 @@ message None {}
 
 service Status {
   rpc Get(None) returns (StatusMessage) {}
+}
+
+message PingMessage {
+  string port = 1;
+}
+
+service Ping {
+  rpc Send(PingMessage) returns (None) {}
 }
 

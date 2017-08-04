@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -10,8 +9,7 @@ import (
 
 	"golang.org/x/net/context"
 
-	ad "github.com/jiop/various/grpc_agents/advertise"
-	pb "github.com/jiop/various/grpc_agents/status"
+	co "github.com/jiop/various/grpc_agents/connection"
 	"google.golang.org/grpc"
 )
 
@@ -21,11 +19,6 @@ type statusServer struct {
 
 type crash interface {
 	Error() string
-}
-type randomCrash struct{}
-
-func (*randomCrash) Error() string {
-	return "randomCrash"
 }
 
 type classicCrash struct{}
@@ -41,22 +34,15 @@ func (s *statusServer) start(c chan crash) {
 	}
 	var opts []grpc.ServerOption
 	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterStatusServer(grpcServer, s)
-
-	// go func() {
-	// 	select {
-	// 	case <-time.After(3 * time.Second):
-	// 		c <- &randomCrash{}
-	// 	}
-	// }()
+	co.RegisterStatusServer(grpcServer, s)
 
 	if err := grpcServer.Serve(lis); err != nil {
 		c <- &classicCrash{}
 	}
 }
 
-func (s *statusServer) Get(ctx context.Context, in *pb.None) (*pb.StatusMessage, error) {
-	return &pb.StatusMessage{Value: "up"}, nil
+func (s *statusServer) Get(ctx context.Context, in *co.None) (*co.StatusMessage, error) {
+	return &co.StatusMessage{Value: "up"}, nil
 }
 
 func newStatusServer() *statusServer {
@@ -65,26 +51,15 @@ func newStatusServer() *statusServer {
 	}
 }
 
-type advertiseClient struct {
-	client ad.AdvertiseClient
-	port   string
-}
-
-func advertiseBoard(boardPort string, clientPort string) error {
+func (s *statusServer) advertiseBoard(boardPort string) error {
 	conn, err := grpc.Dial("localhost:"+boardPort, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 	defer conn.Close()
 
-	client := ad.NewAdvertiseClient(conn)
-	ack, err := client.Send(context.Background(), &ad.AdvertiseMessage{Port: clientPort})
-	if err != nil {
-		return err
-	}
-	if ack.Ok != true {
-		return errors.New("Board server did not acknowledge")
-	}
+	client := co.NewPingClient(conn)
+	_, err = client.Send(context.Background(), &co.PingMessage{Port: s.port})
 	return err
 }
 
@@ -92,24 +67,11 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	me := newStatusServer()
 
-	if err := advertiseBoard("49000", me.port); err != nil {
+	if err := me.advertiseBoard("49000"); err != nil {
 		log.Fatal(err)
 	}
 
 	fmt.Println("Agent serving on port:", me.port)
 	c := make(chan crash)
-	go me.start(c)
-	for {
-		select {
-		case v := <-c:
-			if v.Error() == "randomCrash" {
-				log.Println("randomCrash in the status server.")
-				return
-			}
-			if v.Error() == "classicCrash" {
-				log.Println("classicCrash in the status server.")
-				return
-			}
-		}
-	}
+	me.start(c)
 }
