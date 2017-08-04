@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package resources;
+
+message Data {
+  string name = 1;
+}
+
+message None {}
+
+service Resources {
+  rpc GetData(None) returns (Data) {}
+  rpc StreamListData(None) returns (stream Data) {}
+  rpc StreamRandData(None) returns (stream Data) {}
+}
+

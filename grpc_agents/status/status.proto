@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package status;
+
+message StatusMessage {
+  string value = 1;
+}
+
+message None {}
+
+service Status {
+  rpc Get(None) returns (StatusMessage) {}
+}
+

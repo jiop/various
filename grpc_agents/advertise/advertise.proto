@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package advertise;
+
+message AdvertiseMessage {
+  string port = 1;
+}
+
+message AdvertiseAck {
+  bool ok = 1;
+}
+
+service Advertise {
+  rpc Send(AdvertiseMessage) returns (AdvertiseAck) {}
+}
+
