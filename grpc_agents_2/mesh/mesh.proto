@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package mesh;
+
+message StatusMessage {
+  string address = 1;
+}
+
+message NodesMessage {
+  repeated StatusMessage nodes = 1;
+}
+
+message None {}
+
+service MeshInfo {
+  rpc GetNodes(StatusMessage) returns (NodesMessage) {}
+}
