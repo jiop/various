@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package request;
+
+message CityMessage {
+  string name = 1;
+}
+
+message PostalCodeMessage {
+  string postalcode = 1;
+}
+
+service Request {
+  rpc GetCP(CityMessage) returns (PostalCodeMessage) {}
+}

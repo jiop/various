@@ -6,15 +6,9 @@ import (
 	"log"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/jiop/various/radix/radix"
 )
-
-type resp struct {
-	content   interface{}
-	updatedAt time.Time
-}
 
 func transformStr(s string) string {
 	return strings.ToLower(strings.Replace(s, " ", "_", -1))
