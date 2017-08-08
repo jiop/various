@@ -2,24 +2,39 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
+	"strings"
 
 	pb "github.com/jiop/various/radixcp/request"
 	"google.golang.org/grpc"
 )
 
-const serverPort = "49123"
+var (
+	city       = flag.String("city", "Paris 01", "a city name")
+	serverHost = flag.String("server", "localhost:49123", "gRPC server host")
+)
+
+func transformStr(s string) string {
+	return strings.ToLower(strings.Replace(s, " ", "_", -1))
+}
 
 func main() {
-	conn, err := grpc.Dial("localhost:"+serverPort, grpc.WithInsecure())
+	flag.Parse()
+
+	if *city == "" || *serverHost == "" {
+		log.Fatal("missing required argument.")
+	}
+
+	conn, err := grpc.Dial(*serverHost, grpc.WithInsecure())
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer conn.Close()
 
 	client := pb.NewRequestClient(conn)
-	cpMessage, err := client.GetCP(context.Background(), &pb.CityMessage{Name: "colombes"})
+	cpMessage, err := client.GetCP(context.Background(), &pb.CityMessage{Name: transformStr(*city)})
 	if err != nil {
 		log.Fatal(err)
 	}

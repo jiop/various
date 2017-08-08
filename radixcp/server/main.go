@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/csv"
-	"fmt"
+	"flag"
 	"io"
 	"log"
 	"net"
@@ -14,6 +14,10 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
+
+const csvFile = "csv/laposte_hexasmal.csv"
+
+var port = flag.String("port", "49123", "port")
 
 func transformStr(s string) string {
 	return strings.ToLower(strings.Replace(s, " ", "_", -1))
@@ -44,14 +48,12 @@ func loadRadix(csvFile string, radixStore *radix.Tree) error {
 	return nil
 }
 
-const port = 49123
-
 type server struct {
 	radixStore *radix.Tree
 }
 
 func (s *server) run(c chan<- error) {
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	lis, err := net.Listen("tcp", ":"+*port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -59,7 +61,7 @@ func (s *server) run(c chan<- error) {
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterRequestServer(grpcServer, s)
 
-	log.Println("board server listening on port", port)
+	log.Println("board server listening on port", *port)
 	if err := grpcServer.Serve(lis); err != nil {
 		c <- err
 	}
@@ -100,7 +102,7 @@ func newServer() *server {
 }
 
 func main() {
-	csvFile := "csv/laposte_hexasmal.csv"
+	flag.Parse()
 
 	s := newServer()
 	if err := s.loadData(csvFile); err != nil {
