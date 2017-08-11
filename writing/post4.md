@@ -1,0 +1,1 @@
+# Faire quelquechose avec Ansible

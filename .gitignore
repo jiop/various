@@ -10,3 +10,8 @@ grpc_agents/board/debug
 gameoflife/debug
 radix/debug
 radix/radix/debug.test
+radixcp/client/main
+radixcp/server/main
+tmp/tmp.test
+tmp/profile_cpu.out
+tmp/tmp.asm
